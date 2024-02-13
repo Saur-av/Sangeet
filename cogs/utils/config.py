@@ -8,4 +8,4 @@ lavalink_node = "139.99.124.43"
 lavalink_port = "7784"
 lavalink_password = "PasswordIsZoldy"
 timeout = 180  # set None if you want 24/7 music
-c_appid = "ClientID"
+c_appid = "ClientID" #your Bot's application id
