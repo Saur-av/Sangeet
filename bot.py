@@ -1,6 +1,13 @@
 from __future__ import annotations
 import asyncio
 from discord.ext import commands
+from cogs.utils.config import (
+    lavalink_port,
+    lavalink_node,
+    lavalink_password,
+    timeout,
+    c_appid,
+)
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import CommandError
 from cogs.utils.builders import queue_message_builder, playing_message_builder
@@ -37,7 +44,7 @@ class Sangeet(commands.AutoShardedBot):
             message_content=True,
         )
         super().__init__(
-            command_prefix=(",", "<@!1193919304144539701>", "<@1193919304144539701>"),
+            command_prefix=(",", f"<@!{c_appid}>", f"<@{c_appid}>"),
             description=description,
             help_command=None,
             chunk_guilds_at_startup=False,
@@ -73,9 +80,10 @@ class Sangeet(commands.AutoShardedBot):
                 print(e)
         nodes = [
             wavelink.Node(
-                uri=f"http://139.99.124.43:7784",
-                password="PasswordIsZoldy",
-                inactive_player_timeout=180,
+                uri=f"http://{lavalink_node}:{lavalink_port}"
+                or "http://139.99.124.43:7784",
+                password=lavalink_password or "PasswordIsZoldy",
+                inactive_player_timeout=timeout,
             )
         ]
         self.add_view(MusicButtons())

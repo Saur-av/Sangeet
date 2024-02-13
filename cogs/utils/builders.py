@@ -139,7 +139,7 @@ def now_playing(player: Player) -> Embed:
     return embed
 
 
-def get_help(cmd=None) -> Embed:
+def get_help(cmd: str | None = None) -> Embed:
     embed = Embed(
         title="Support Server.",
         url="https://discord.gg/5gzy2jHhyf",

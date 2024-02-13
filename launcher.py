@@ -33,7 +33,7 @@ def setup_logging():
 
         log.setLevel(logging.INFO)
         handler = RotatingFileHandler(
-            filename="rdanny.log",
+            filename="sangeed.log",
             encoding="utf-8",
             mode="w",
             maxBytes=max_bytes,

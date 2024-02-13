@@ -92,9 +92,7 @@ class Music(commands.Cog):
         """Setup the bot in the server."""
         color = 0xFF0000
         delt = 5
-        if ctx.author.guild_permissions.manage_channels is False and not (
-            ctx.author.id == "491672949506572289"
-        ):
+        if ctx.author.guild_permissions.manage_channels is False:
             des = "You need to be an have `manage_channels` to use this command."
             await ctx.send(
                 embed=discord.Embed(description=des, color=color), delete_after=delt
