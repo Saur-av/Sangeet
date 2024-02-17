@@ -229,6 +229,8 @@ class Sangeet(commands.AutoShardedBot):
                 f"An error occurred while running the command: `{exception}`.",
                 delete_after=5,
             )
+        elif isinstance(exception, commands.CheckFailure):
+            pass
         else:
             err = self.get_error_code()
             log.exception(err + " | " + str(exception))
