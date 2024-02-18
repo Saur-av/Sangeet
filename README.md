@@ -16,7 +16,7 @@ Nevertheless, the installation steps are as follows:
 This is required to actually run the bot.
 
 2. **Set up venv**
-Just do `python3.8 -m venv venv`
+Just do `python -m venv venv`
 
 3. **Install dependencies**
 This is `pip install -U -r requirements.txt`
