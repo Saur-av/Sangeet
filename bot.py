@@ -238,8 +238,6 @@ class Sangeet(commands.AutoShardedBot):
                 f"An unknown error occurred while running the command: {err}.",
             )
 
-    async def check(self, func): ...
-
     def get_error_code(self):
         err: str = "0x" + str(random.randint(100000, 999999))
         return err
