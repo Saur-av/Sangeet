@@ -364,6 +364,5 @@ class Music(commands.Cog):
         player: wavelink.Player = cast(wavelink.Player, ctx.guild.voice_client)  # type: ignore
         await ctx.send(embed=now_playing(player))
 
-
 async def setup(bot: Sangeet):
     await bot.add_cog(Music(bot))

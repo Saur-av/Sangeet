@@ -71,6 +71,7 @@ class Sangeet(commands.AutoShardedBot):
                 i["queueid"],
                 i["playingid"],
             ]
+
         await self.load_extension("jishaku")
         for extension in initial_extensions:
             try:
@@ -78,15 +79,41 @@ class Sangeet(commands.AutoShardedBot):
             except Exception as e:
                 print(f"Failed to load extension {extension}.")
                 print(e)
+        
         nodes = [
             wavelink.Node(
-                uri=f"http://{lavalink_node}:{lavalink_port}"
-                or "http://139.99.124.43:7784",
-                password=lavalink_password or "PasswordIsZoldy",
+                uri=f"http://lavalink.chompubot.work:30216",
+                password="somboytiger",
                 inactive_player_timeout=timeout,
-            )
+                retries=2,
+            ),
+            wavelink.Node(
+                uri=f"http://lavalink4.theelf.tech:6827",
+                password="https://dsc.gg/elfmusic",
+                inactive_player_timeout=timeout,
+                retries=2,
+            ),
+            wavelink.Node(
+                uri=f"http://lavalink4.alfari.id:80",
+                password="catfein",
+                inactive_player_timeout=timeout,
+                retries=2,
+            ),
+            wavelink.Node(
+                uri=f"https://lavalink4.alfari.id:443",
+                password="catfein",
+                inactive_player_timeout=timeout,
+                retries=2,
+            ),
+            wavelink.Node(
+                uri=f"https://lavalink4-frankfurt.alfari.id:443",
+                password="catfein",
+                inactive_player_timeout=timeout,
+                retries=2,
+            ),
         ]
         self.add_view(MusicButtons())
+        
         await wavelink.Pool.connect(nodes=nodes, client=self)
 
     async def on_wavelink_node_ready(
@@ -139,12 +166,15 @@ class Sangeet(commands.AutoShardedBot):
                 queue = setupchannel.get_partial_message(
                     self._setupdetails[player.home.guild.id][1]  # type: ignore
                 )
-                await queue.edit(embed=queue_message_builder(player))
+                mbed = queue_message_builder(player)
+                if mbed is None:
+                    return
+                await queue.edit(embed=mbed)
                 if not has_queue:
                     playing = setupchannel.get_partial_message(
                         self._setupdetails[player.home.guild.id][2]  # type: ignore
                     )
-                    asyncio.sleep(2)
+                    await asyncio.sleep(2)
                     await playing.edit(embed=playing_message_builder(player, flag=True))
             except Exception as e:
                 print(e)
@@ -158,13 +188,12 @@ class Sangeet(commands.AutoShardedBot):
 
         await player.home.send(  # type: ignore
             embed=discord.Embed(
-                description=f"Please Check nodes [Call Sapi].",
+                description=f"There seems to be Fatal Error, Resetting the bot.",
                 color=discord.Colour(0xFF0000),
             )
         )
-        if payload.player.queue:
-            await player.play(player.queue.get())
-            return
+
+        await wavelink.Pool.reconnect()
 
     async def on_wavelink_inactive_player(self, player: wavelink.Player) -> None:
         await player.home.send(  # type: ignore

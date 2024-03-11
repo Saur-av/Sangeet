@@ -62,7 +62,7 @@ def play_builder(player: Player, track: Playable, author: str) -> Embed:
     return embed
 
 
-def queue_message_builder(player: Player | None, guild: Guild | None = None) -> Embed:
+def queue_message_builder(player: Player | None, guild: Guild | None = None) -> Embed | None:
     """For Setup Channel Queue."""
     url = "https://slate.dan.onl/slate.png"
     description = "Currently there are __0 Songs__ in the Queue."
@@ -73,7 +73,8 @@ def queue_message_builder(player: Player | None, guild: Guild | None = None) -> 
         )
         url = guild.icon or guild.banner  # type: ignore
     else:
-        assert player is not None
+        if not player:
+            return
         embed = Embed(
             title=f"Queue of __{player.home.guild.name}__",  # type: ignore
             color=0x1E1F22,

@@ -66,6 +66,7 @@ async def run_bot():
             password=config.db_password,
             database=config.db_name,
             command_timeout=300,
+            statement_cache_size=0,
             max_size=20,
             min_size=20,
         )
