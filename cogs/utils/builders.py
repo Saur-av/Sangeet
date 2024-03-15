@@ -13,7 +13,6 @@ def get_stamp(seconds: int) -> str:
     sec = f"{seconds}" if seconds >= 10 else f"0{seconds}"
     return f"{min}:{sec}"
 
-
 def queue_builder(player: Player, page: int) -> Embed:
     """For Queue command."""
     pages = len(player.queue) // 10
@@ -135,6 +134,7 @@ def now_playing(player: Player) -> Embed:
     x = "▬" * (postition - 1) + "🔘" + "▬" * (15 - postition)
     embed.add_field(name="Position", value=f"`{x}`", inline=True)
     embed.add_field(name="Position in queue", value="1", inline=True)
+    embed.add_field(name="",value="",inline=False)
     embed.add_field(name="Position", value=get_stamp(now), inline=True)
     embed.add_field(name="Length", value=get_stamp(length), inline=True)
     return embed

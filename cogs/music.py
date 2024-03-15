@@ -173,15 +173,16 @@ class Music(commands.Cog):
 
             channelid = self.bot._setupdetails[ctx.guild.id][0]
             setupchannel = ctx.guild.get_channel(channelid)
-            queue = setupchannel.get_partial_message(  # type: ignore
-                self.bot._setupdetails[ctx.guild.id][1]
-            )
-            nowp = setupchannel.get_partial_message(  # type: ignore
-                self.bot._setupdetails[ctx.guild.id][2]
-            )
-            await nowp.edit(embed=playing_embed)
-            await asyncio.sleep(0.75)
-            await queue.edit(embed=queue_embed)
+            if channelid and setupchannel:
+                queue = setupchannel.get_partial_message(  # type: ignore
+                    self.bot._setupdetails[ctx.guild.id][1]
+                )
+                nowp = setupchannel.get_partial_message(  # type: ignore
+                    self.bot._setupdetails[ctx.guild.id][2]
+                )
+                await nowp.edit(embed=playing_embed)
+                await asyncio.sleep(0.75)
+                await queue.edit(embed=queue_embed)
 
     @commands.hybrid_command(
         name="pause", describe="Pauses the player.", aliases=["toogle", "pau"]
@@ -232,6 +233,16 @@ class Music(commands.Cog):
             )
         )
         await player.skip()
+        if ctx.guild.id in self.bot._setupdetails.keys():
+            queue_embed = queue_message_builder(player)
+
+            channelid = self.bot._setupdetails[ctx.guild.id][0]
+            setupchannel = ctx.guild.get_channel(channelid)
+            if channelid and setupchannel:
+                queue = setupchannel.get_partial_message(  # type: ignore
+                    self.bot._setupdetails[ctx.guild.id][1]
+                )
+                await queue.edit(embed=queue_embed)
 
     @commands.hybrid_command(
         name="volume", describe="Change volume of the player.", aliases=["vol"]
@@ -267,10 +278,11 @@ class Music(commands.Cog):
 
             channelid = self.bot._setupdetails[ctx.guild.id][0]
             setupchannel = ctx.guild.get_channel(channelid)
-            queue = setupchannel.get_partial_message(  # type: ignore
-                self.bot._setupdetails[ctx.guild.id][1]
-            )
-            await queue.edit(embed=queue_embed)
+            if channelid and setupchannel:
+                queue = setupchannel.get_partial_message(  # type: ignore
+                    self.bot._setupdetails[ctx.guild.id][1]
+                )
+                await queue.edit(embed=queue_embed)
 
     @commands.hybrid_command(name="loop")
     @app_commands.choices(
@@ -341,10 +353,11 @@ class Music(commands.Cog):
             queue_embed = queue_message_builder(player)
             channelid = self.bot._setupdetails[ctx.guild.id][0]
             setupchannel = ctx.guild.get_channel(channelid)
-            queue = setupchannel.get_partial_message(  # type: ignore
-                self.bot._setupdetails[ctx.guild.id][1]
-            )
-            await queue.edit(embed=queue_embed)
+            if setupchannel:
+                queue = setupchannel.get_partial_message(  # type: ignore
+                    self.bot._setupdetails[ctx.guild.id][1]
+                )
+                await queue.edit(embed=queue_embed)
 
     @commands.hybrid_command(
         name="queue",

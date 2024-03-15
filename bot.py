@@ -114,7 +114,7 @@ class Sangeet(commands.AutoShardedBot):
         ]
         self.add_view(MusicButtons())
         
-        await wavelink.Pool.connect(nodes=nodes, client=self)
+        await wavelink.Pool.connect(nodes=nodes, client=self,)
 
     async def on_wavelink_node_ready(
         self, payload: wavelink.NodeReadyEventPayload
