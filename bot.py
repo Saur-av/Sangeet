@@ -2,11 +2,7 @@ from __future__ import annotations
 import asyncio
 from discord.ext import commands
 from cogs.utils.config import (
-    lavalink_port,
-    lavalink_node,
-    lavalink_password,
     timeout,
-    c_appid,
 )
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import CommandError
@@ -24,7 +20,6 @@ initial_extensions = ("cogs.general", "cogs.music")
 
 log = logging.getLogger(__name__)
 
-
 class Sangeet(commands.AutoShardedBot):
     user: discord.ClientUser
     pool: asyncpg.Pool
@@ -33,18 +28,9 @@ class Sangeet(commands.AutoShardedBot):
         allowed_mentions = discord.AllowedMentions(
             roles=False, everyone=False, users=True
         )
-        intents = discord.Intents(
-            guilds=True,
-            members=True,
-            bans=True,
-            emojis=True,
-            voice_states=True,
-            messages=True,
-            reactions=True,
-            message_content=True,
-        )
+        intents = discord.Intents.all()
         super().__init__(
-            command_prefix=(",", f"<@!{c_appid}>", f"<@{c_appid}>"),
+            command_prefix=(",",),
             description=description,
             help_command=None,
             chunk_guilds_at_startup=False,
@@ -55,12 +41,13 @@ class Sangeet(commands.AutoShardedBot):
         self.spam_control = commands.CooldownMapping.from_cooldown(
             10, 12.0, commands.BucketType.user
         )
-
+    
     async def setup_hook(self) -> None:
         async with self.pool.acquire() as conn:
             with open("sql/schema.sql", "r") as sql:
                 await conn.execute(sql.read())
-        self._setupdetails = {}  # serverid: [channelid, queueid, playingid]
+
+        self._setupdetails: dict[int, list[int]] = {}  # serverid: [channelid, queueid, playingid]
         self._channels = [
             i["channelid"]
             for i in await self.pool.fetch("SELECT channelid FROM setupdetails")
@@ -79,7 +66,7 @@ class Sangeet(commands.AutoShardedBot):
             except Exception as e:
                 print(f"Failed to load extension {extension}.")
                 print(e)
-        
+ 
         nodes = [
             wavelink.Node(
                 uri=f"http://lavalink.chompubot.work:30216",
@@ -128,8 +115,9 @@ class Sangeet(commands.AutoShardedBot):
         track: wavelink.Playable = payload.track
         delt = None
         assert player is not None
-        if player.home.id in self._channels:  # type: ignore
+        if hasattr(player,'home') and player.home.id in self._channels: #type: ignore
             delt = 5
+
         embed: discord.Embed = discord.Embed(
             description=f"Started playing **[{track.title}]({track.uri})**",
             color=0x1E1F22,
@@ -146,7 +134,7 @@ class Sangeet(commands.AutoShardedBot):
                 await playing.edit(embed=playing_message_builder(player))
             except Exception as e:
                 print(e)
-
+    
     async def on_wavelink_track_end(
         self, payload: wavelink.TrackEndEventPayload
     ) -> None:
@@ -162,6 +150,8 @@ class Sangeet(commands.AutoShardedBot):
         if player.home.guild.id in self._setupdetails.keys():  # type: ignore
             channelid = self._setupdetails[player.home.guild.id][0]  # type: ignore
             try:
+                if has_queue:
+                    return
                 setupchannel = player.home.guild.get_channel(channelid)  # type: ignore
                 queue = setupchannel.get_partial_message(
                     self._setupdetails[player.home.guild.id][1]  # type: ignore
@@ -170,14 +160,13 @@ class Sangeet(commands.AutoShardedBot):
                 if mbed is None:
                     return
                 await queue.edit(embed=mbed)
-                if not has_queue:
-                    playing = setupchannel.get_partial_message(
-                        self._setupdetails[player.home.guild.id][2]  # type: ignore
-                    )
-                    await asyncio.sleep(2)
-                    await playing.edit(embed=playing_message_builder(player, flag=True))
+                playing = setupchannel.get_partial_message(
+                    self._setupdetails[player.home.guild.id][2]  # type: ignore
+                )
+                await asyncio.sleep(2)
+                await playing.edit(embed=playing_message_builder(player, flag=True))
             except Exception as e:
-                print(e)
+                print("IN on_wavelink_track_end",e)
 
     async def on_wavelink_track_exception(
         self, payload: wavelink.TrackExceptionEventPayload
@@ -207,21 +196,21 @@ class Sangeet(commands.AutoShardedBot):
         player.cleanup()
 
     async def on_message(self, message: discord.Message) -> None:
-        if message.author.id == self.user.id:
+        if message.author.id == self.user.id or message.author.bot or message.guild is None:
             return
-        if message.channel.id in self._channels:
-            await message.delete(delay=2)
-            if message.content.startswith(tuple(self.command_prefix)):  # type: ignore
-                await message.reply(
-                    "You cannot use commands in this channel.", delete_after=5
-                )
-                return
-            playcmd = self.get_command("play")
-            assert playcmd is not None
-            ctx = await self.get_context(message)
-            await playcmd.invoke(ctx)
-        await self.process_commands(message)
-
+        if message.channel.id not in self._channels:
+            await self.process_commands(message)
+        await message.delete(delay=3)
+        if message.content.startswith(tuple(self.command_prefix)):  # type: ignore
+            await message.reply(
+                "You cannot use commands in this channel.", delete_after=5
+            )
+            return
+        playcmd = self.get_command("play")
+        assert playcmd is not None
+        ctx = await self.get_context(message)
+        await playcmd.invoke(ctx)
+        
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id}).")  # type: ignore
         print("------")
@@ -270,7 +259,8 @@ class Sangeet(commands.AutoShardedBot):
     def get_error_code(self):
         err: str = "0x" + str(random.randint(100000, 999999))
         return err
-
+    
     async def close(self) -> None:
         await self.pool.close()
+        await wavelink.Pool.close()
         await super().close()

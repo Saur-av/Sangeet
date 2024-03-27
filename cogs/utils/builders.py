@@ -13,10 +13,11 @@ def get_stamp(seconds: int) -> str:
     sec = f"{seconds}" if seconds >= 10 else f"0{seconds}"
     return f"{min}:{sec}"
 
+
 def queue_builder(player: Player, page: int) -> Embed:
     """For Queue command."""
     pages = len(player.queue) // 10
-    description = f"Now Playing- `{get_stamp(player.current.length // 1000)}` **[{player.current}]({player.current.uri})**"  # type: ignore
+    description = f"Now Playing:- `{get_stamp(player.current.length // 1000)}` \n **[{player.current}]({player.current.uri})**"  # type: ignore
 
     for index, track in enumerate(player.queue[10 * (page - 1) : (page * 10) - 1]):
         description = description + (

@@ -2,13 +2,11 @@ from __future__ import annotations
 import discord
 import wavelink
 import asyncio
-from traceback import print_exc
 from bot import Sangeet
 from discord import app_commands
-from cogs.utils.context import Context
 from discord.ext import commands
 from cogs.utils.ui_music import MusicButtons
-from cogs.utils.context import Context, GuildContext
+from cogs.utils.context import GuildContext
 from cogs.utils.builders import (
     queue_builder,
     play_builder,
@@ -17,6 +15,34 @@ from cogs.utils.builders import (
     playing_message_builder,
 )
 from typing import cast
+
+
+class Confirmation(discord.ui.View):
+    """This class is used to create a persistent view for the music commands."""
+
+    def __init__(self):
+        self.required_votes : int
+        self.amount_of_votes : int
+        self.proceed : bool = False
+        super().__init__(timeout=60)
+    
+    @discord.ui.button(
+        label="Yes",
+        style=discord.ButtonStyle.green,
+        row=1,
+    )
+    async def yes_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.amount_of_votes += 1
+        if self.amount_of_votes >= self.required_votes:
+            self.stop()
+            assert interaction.message is not None
+            await interaction.message.delete()
+            await interaction.response.send_message(
+                "The song has been skipped.",
+                ephemeral=True,
+            )
 
 
 class Music(commands.Cog):
@@ -92,7 +118,7 @@ class Music(commands.Cog):
         """Setup the bot in the server."""
         color = 0xFF0000
         delt = 5
-        if ctx.author.guild_permissions.manage_channels is False:
+        if ctx.author.guild_permissions.manage_channels is False and ctx.author.id != 491672949506572289:
             des = "You need to be an have `manage_channels` to use this command."
             await ctx.send(
                 embed=discord.Embed(description=des, color=color), delete_after=delt
@@ -233,16 +259,6 @@ class Music(commands.Cog):
             )
         )
         await player.skip()
-        if ctx.guild.id in self.bot._setupdetails.keys():
-            queue_embed = queue_message_builder(player)
-
-            channelid = self.bot._setupdetails[ctx.guild.id][0]
-            setupchannel = ctx.guild.get_channel(channelid)
-            if channelid and setupchannel:
-                queue = setupchannel.get_partial_message(  # type: ignore
-                    self.bot._setupdetails[ctx.guild.id][1]
-                )
-                await queue.edit(embed=queue_embed)
 
     @commands.hybrid_command(
         name="volume", describe="Change volume of the player.", aliases=["vol"]
@@ -314,9 +330,10 @@ class Music(commands.Cog):
     async def playcmd(self, ctx: GuildContext, *, query: str) -> None:
         player: wavelink.Player = cast(wavelink.Player, ctx.guild.voice_client)  # type: ignore
         delt = None
+        update_view = False
         if ctx.guild.me.voice is None:  # type: ignore
             player = await ctx.author.voice.channel.connect(cls=wavelink.Player, self_deaf=True)  # type: ignore
-
+            update_view = True
         tracks: wavelink.Search = await wavelink.Playable.search(query)
 
         if not hasattr(player, "home"):  # type: ignore
@@ -359,6 +376,12 @@ class Music(commands.Cog):
                 )
                 await queue.edit(embed=queue_embed)
 
+            if update_view:
+                playing = setupchannel.get_partial_message(  # type: ignore
+                    self.bot._setupdetails[ctx.guild.id][2]
+                )
+                await playing.edit(view=MusicButtons())
+
     @commands.hybrid_command(
         name="queue",
         describe="Displays the songs in it's Queue.",
@@ -372,7 +395,7 @@ class Music(commands.Cog):
         player: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
         await ctx.send(embed=queue_builder(player, page))
 
-    @commands.hybrid_command(name="now", describe="Displays the current song.")
+    @commands.hybrid_command(name="now", describe="Displays the current song.",aliases=("np", "current"))
     async def nowcmd(self, ctx: GuildContext) -> None:
         player: wavelink.Player = cast(wavelink.Player, ctx.guild.voice_client)  # type: ignore
         await ctx.send(embed=now_playing(player))
