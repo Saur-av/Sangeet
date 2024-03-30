@@ -8,6 +8,7 @@ from discord.ext.commands.context import Context
 from discord.ext.commands.errors import CommandError
 from cogs.utils.builders import queue_message_builder, playing_message_builder
 from cogs.utils.ui_music import MusicButtons
+from typing import cast
 import asyncpg
 import discord
 import wavelink
@@ -69,34 +70,10 @@ class Sangeet(commands.AutoShardedBot):
  
         nodes = [
             wavelink.Node(
-                uri=f"http://lavalink.chompubot.work:30216",
-                password="somboytiger",
-                inactive_player_timeout=timeout,
-                retries=2,
-            ),
-            wavelink.Node(
-                uri=f"http://lavalink4.theelf.tech:6827",
-                password="https://dsc.gg/elfmusic",
-                inactive_player_timeout=timeout,
-                retries=2,
-            ),
-            wavelink.Node(
-                uri=f"http://lavalink4.alfari.id:80",
-                password="catfein",
-                inactive_player_timeout=timeout,
-                retries=2,
-            ),
-            wavelink.Node(
                 uri=f"https://lavalink4.alfari.id:443",
                 password="catfein",
                 inactive_player_timeout=timeout,
-                retries=2,
-            ),
-            wavelink.Node(
-                uri=f"https://lavalink4-frankfurt.alfari.id:443",
-                password="catfein",
-                inactive_player_timeout=timeout,
-                retries=2,
+                retries=1,
             ),
         ]
         self.add_view(MusicButtons())
@@ -200,6 +177,7 @@ class Sangeet(commands.AutoShardedBot):
             return
         if message.channel.id not in self._channels:
             await self.process_commands(message)
+            return
         await message.delete(delay=3)
         if message.content.startswith(tuple(self.command_prefix)):  # type: ignore
             await message.reply(
@@ -260,6 +238,15 @@ class Sangeet(commands.AutoShardedBot):
         err: str = "0x" + str(random.randint(100000, 999999))
         return err
     
+    async def on_voice_state_update(
+        self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
+    ) -> None:
+        if member.id == self.user.id and after.channel is None:
+                player: wavelink.Player = cast(wavelink.Player, before)
+                await player.disconnect()
+                player.cleanup()
+
+
     async def close(self) -> None:
         await self.pool.close()
         await wavelink.Pool.close()

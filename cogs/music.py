@@ -20,12 +20,26 @@ from typing import cast
 class Confirmation(discord.ui.View):
     """This class is used to create a persistent view for the music commands."""
 
-    def __init__(self):
-        self.required_votes : int
-        self.amount_of_votes : int
-        self.proceed : bool = False
+    def __init__(self,required_votes,start_member: discord.Member):
         super().__init__(timeout=60)
-    
+        self.required_votes : int = required_votes
+        self.amount_of_votes : int = 1
+        self.proceed : bool = False
+        self.voted : list[int] = [start_member.id]
+        self.channel = start_member.voice.channel # type: ignore
+        self.response : discord.Message
+
+    async def interaction_check(self, interaction: discord.Interaction[discord.Client]):
+        if interaction.user in self.channel.members: # type: ignore
+            return True
+        await interaction.response.send_message(embed=discord.Embed(description="You are not in the Voice Channel."),ephemeral=True)
+        return False
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True # type: ignore
+        await self.response.edit(view=self)
+
     @discord.ui.button(
         label="Yes",
         style=discord.ButtonStyle.green,
@@ -34,16 +48,32 @@ class Confirmation(discord.ui.View):
     async def yes_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
+        if interaction.user.id in self.voted:
+            await interaction.response.send_message(delete_after=5,embed=discord.Embed(description="You have already voted!"))
+            return
         self.amount_of_votes += 1
+        await interaction.edit_original_response(embed=discord.Embed(description=f"Vote to Stop the song [{self.amount_of_votes}/{self.required_votes}]"))
         if self.amount_of_votes >= self.required_votes:
-            self.stop()
             assert interaction.message is not None
             await interaction.message.delete()
-            await interaction.response.send_message(
-                "The song has been skipped.",
-                ephemeral=True,
-            )
+            self.proceed = True
+            self.stop()
 
+    @discord.ui.button(
+        label="No",
+        style=discord.ButtonStyle.red,
+        row=1,
+    )
+    async def no_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        if interaction.user.id not in self.voted:
+            await interaction.response.send_message(embed= discord.Embed(description="Vote First To Unvote, Makes Sense Right?")) 
+            return
+        # await interaction.edit_original_response(embed=discord.Embed(description=f"Vote to Stop the song [{self.amount_of_votes}/{self.required_votes}]"))
+        await interaction.edit_original_response(embed=discord.Embed(description=f"Vote to Stop the song [{self.amount_of_votes}/{self.required_votes}]"))
+        self.amount_of_votes -= 1
+        self.voted.remove(interaction.user.id)
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -184,6 +214,16 @@ class Music(commands.Cog):
     async def stopcmd(self, ctx: GuildContext) -> None:
         """Disconnects from the Channel."""
         player: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
+
+        number_in_vc = len(ctx.channel.members)
+        if number_in_vc > 3:
+            required_votes = len(ctx.channel.members) // 2
+            view = Confirmation(required_votes=required_votes,start_member=ctx.author)
+            await ctx.send(f"Vote If you want to Stop [1/{required_votes}]?", view=view)
+            await view.wait()
+            if view.proceed is False:
+                await ctx.send("Voting to Stop the song has been failed.")
+                return
         await ctx.voice_client.disconnect(force=True)  # type: ignore
         player.cleanup()
         await ctx.send(
@@ -252,6 +292,19 @@ class Music(commands.Cog):
     async def skipcmd(self, ctx: GuildContext) -> None:
         """Skips the current song."""
         player: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
+
+        # number_in_vc = len([i for i in ctx.channel.members if not i.bot]) # type: ignore
+        number_in_vc = len(ctx.channel.members)
+
+        if number_in_vc > 3:
+            required_votes = len(ctx.channel.members) // 2
+            view = Confirmation(required_votes=required_votes,start_member=ctx.author)
+            msg = await ctx.send(f"Vote If you want to skip [1/{required_votes}]?", view=view)
+            view.response = msg
+            await view.wait()
+            if view.proceed is False:
+                return
+
         await ctx.send(
             embed=discord.Embed(
                 description=f"**[{player.current}]({player.current.uri})** has been skipped",  # type: ignore
