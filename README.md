@@ -1,7 +1,7 @@
 
 # Sangeet
 
-Advanced Discord Music Bot, Using Lavalink.
+Music System for Discord Using LavaLink.
 
 
 
@@ -16,13 +16,12 @@ Nevertheless, the installation steps are as follows:
 This is required to actually run the bot.
 
 2. **Set up venv**
-Just do `python -m venv venv`
+Construct a Virtual Environment on the Projetc Folder
+`python -m venv venv`
 
-3. **Install dependencies**
-This is `pip install -U -r requirements.txt`
+4. **Install dependencies**
+Install dependencies in the Virtual Environment
+`pip install -U -r requirements.txt`
 
-4. **Setup configuration**
-The next step is just to fill the `config.py` file in `cogs/utils` folder
-
-5. **Configuration of Database**
-Run the commands within schema.sql inside the sql folder 
+6. **Setup configuration**
+Goto `cogs/utils` folder, Update the `config.py` file.
